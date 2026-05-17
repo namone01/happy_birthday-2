@@ -10,7 +10,8 @@
     var pistilC, petalC, pistilC2, petalC2
     
     /*Initialize flowers*/
-    body.addEventListener("click",function(ev){
+    body.addEventListener("click", function(ev){
+      if (ev.target.closest("#present") || ev.target.closest("#admin-overlay")) return;
       drawFlowers()
     })
     window.onload = drawFlowers
@@ -201,7 +202,6 @@
   function scaleCanvas(){
     var w = Math.max(document.documentElement.clientWidth, window.innerWidth);
     var h = Math.max(document.documentElement.clientHeight, window.innerHeight);
-    console.log(`width:${w},height:${h}`)
     canvas.style.width = w + "px";
     canvas.style.height = h + "px";
     var scale = 1;//window.devicePixelRatio;
