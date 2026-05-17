@@ -201,6 +201,12 @@
     document.getElementById("adm-pwd")?.focus();
   }
 
+  const adminRoute = location.pathname.replace(/\/+$/, "");
+  const shouldOpenAdmin = adminRoute.endsWith("/admin") || new URLSearchParams(location.search).has("admin");
+  if (shouldOpenAdmin) {
+    showAdminOverlay();
+  }
+
   window.addEventListener("keydown", (ev) => {
     const key = (ev.key || "").toLowerCase();
     if (ev.ctrlKey && ev.shiftKey && (ev.code === "KeyE" || key === "e")) {
