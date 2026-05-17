@@ -107,7 +107,158 @@
         
     </div>
       
+  <div id="admin-overlay" class="no-select">
+    <div class="admin-card">
+      <div id="login-box">
+        <div class="adm-icon">🔐</div>
+        <div class="adm-title">Admin</div>
+        <div class="adm-sub">Nhập mật khẩu để xem thống kê</div>
+        <input class="adm-input" id="adm-pwd" type="password"
+               placeholder="Mật khẩu..."
+               onkeydown="if(event.key==='Enter') admLogin()" />
+        <button class="adm-btn" onclick="admLogin()">Đăng nhập</button>
+        <div class="adm-err hidden" id="adm-err">❌ Sai mật khẩu!</div>
+      </div>
+
+      <div id="stats-box" class="hidden">
+        <div class="adm-icon">📊</div>
+        <div class="adm-title">Thống kê</div>
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-num" id="stat-views">—</div>
+            <div class="stat-lbl">Lần mở link</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="stat-clicks">—</div>
+            <div class="stat-lbl">Click hộp quà</div>
+          </div>
+        </div>
+        <div class="adm-updated" id="adm-updated">Đang tải...</div>
+        <br>
+        <button class="adm-back" onclick="admClose()">✕ Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="canvas.js"></script>
+  <script src="present.js"></script>
+ 
+<!-- ══════════════════════════════════════════
+     FIREBASE TRACKING
+     Làm theo hướng dẫn bên dưới để setup
+══════════════════════════════════════════ -->
+<script type="module">
+  import { initializeApp }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, runTransaction, onValue }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+ 
+  /* ─────────────────────────────────────────
+   * 🔧 BƯỚC 1: Paste firebaseConfig vào đây
+   *    (lấy từ Firebase Console → Project Settings)
+   * ───────────────────────────────────────── */
+  const firebaseConfig = {
+    apiKey:            "AIzaSyACZ0gywH2DX3JbyGos-yM_9L5fEUXXHkY",
+    authDomain:        "happy-birthday-d7c14.firebaseapp.com",
+    databaseURL:       "https://happy-birthday-d7c14-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId:         "happy-birthday-d7c14",
+    storageBucket:     "happy-birthday-d7c14.firebasestorage.app",
+    messagingSenderId: "841219895684",
+    appId:             "1:841219895684:web:b1a3887c2aa1ca56adedd1",
+    measurementId:     "G-EQB1X759L8"
+  };
+ 
+  /* ─────────────────────────────────────────
+   * 🔒 BƯỚC 2: Đổi mật khẩu admin ở đây
+   * ───────────────────────────────────────── */
+  const ADMIN_PASSWORD = "jandy123";
+ 
+  /* ──────────── Init Firebase ──────────── */
+  let viewsRef, clicksRef;
+  try {
+    const app = initializeApp(firebaseConfig);
+    const db  = getDatabase(app);
+    viewsRef  = ref(db, "birthday/views");
+    clicksRef = ref(db, "birthday/clicks");
+  } catch(e) {
+    console.warn("Firebase chưa cấu hình:", e.message);
+  }
+ 
+  /* ── Tự động +1 mỗi lần ai mở trang ── */
+  if (viewsRef) {
+    runTransaction(viewsRef, v => (v || 0) + 1).catch(() => {});
+  }
+ 
+  /* ── Đếm mỗi lần click vào hộp quà ── */
+  document.getElementById("present")?.addEventListener("click", () => {
+    if (clicksRef) runTransaction(clicksRef, v => (v || 0) + 1).catch(() => {});
+  });
+ 
+  /* ──────────── Admin panel logic ──────────── */
+  function showAdminOverlay() {
+    const overlay = document.getElementById("admin-overlay");
+    overlay?.classList.add("show");
+    document.getElementById("adm-pwd")?.focus();
+  }
+
+  window.addEventListener("keydown", (ev) => {
+    const key = (ev.key || "").toLowerCase();
+    if (ev.ctrlKey && ev.shiftKey && (ev.code === "KeyE" || key === "e")) {
+      ev.preventDefault();
+      showAdminOverlay();
+    }
+  });
+
+  window.addEventListener("keyup", (ev) => {
+    const key = (ev.key || "").toLowerCase();
+    if (ev.ctrlKey && ev.shiftKey && (ev.code === "KeyE" || key === "e")) {
+      ev.preventDefault();
+      showAdminOverlay();
+    }
+  });
+
+  window.admLogin = () => {
+    const val = document.getElementById("adm-pwd").value;
+    const err = document.getElementById("adm-err");
+    if (val === ADMIN_PASSWORD) {
+      document.getElementById("login-box").style.display = "none";
+      document.getElementById("stats-box").classList.remove("hidden");
+      err?.classList.add("hidden");
+      loadStats();
+    } else {
+      err?.classList.remove("hidden");
+      document.getElementById("adm-pwd").value = "";
+      setTimeout(() => err?.classList.add("hidden"), 2000);
+    }
+  };
+
+  window.admClose = () => {
+    document.getElementById("admin-overlay").classList.remove("show");
+    document.getElementById("login-box").style.display = "block";
+    document.getElementById("stats-box").classList.add("hidden");
+    document.getElementById("adm-pwd").value = "";
+    document.getElementById("adm-err").classList.add("hidden");
+  };
+
+  document.getElementById("admin-overlay")?.addEventListener("click", (ev) => {
+    if (ev.target.id === "admin-overlay") window.admClose();
+  });
+
+  function loadStats() {
+    if (!viewsRef || !clicksRef) {
+      document.getElementById("stat-views").textContent  = "N/A";
+      document.getElementById("stat-clicks").textContent = "N/A";
+      document.getElementById("adm-updated").textContent = "⚠️ Chưa cấu hình Firebase";
+      return;
+    }
+    onValue(viewsRef,  s => { document.getElementById("stat-views").textContent  = s.val() || 0; tick(); });
+    onValue(clicksRef, s => { document.getElementById("stat-clicks").textContent = s.val() || 0; tick(); });
+  }
+ 
+  function tick() {
+    document.getElementById("adm-updated").textContent =
+      "Realtime · cập nhật lúc " + new Date().toLocaleTimeString("vi-VN");
+  }
+  </script>
 </body>
-<script src="canvas.js"></script>
-<script src="present.js"></script>
 </html>
